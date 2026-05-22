@@ -293,21 +293,21 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
         listWithButton
             .ignoresSafeArea(.container, edges: [.top, .bottom])
             .overlay(alignment: .top) {
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: 100) // pass nav bar region through untouched
-                    Rectangle()
-                        .fill(.regularMaterial)
-                        .frame(height: 30)
-                        .mask {
-                            LinearGradient(
-                                colors: [.black, .clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
-                    Spacer(minLength: 0)
-                }
-                .allowsHitTesting(false)
+                // .overlay(alignment: .top) aligns to the top of the safe area
+                // (i.e., right below the nav bar) — *not* to the screen top,
+                // despite the .ignoresSafeArea above. So the strip sits flush
+                // against the bar's bottom edge with no extra spacer.
+                Rectangle()
+                    .fill(.regularMaterial)
+                    .frame(height: 30)
+                    .mask {
+                        LinearGradient(
+                            colors: [.black, .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                    .allowsHitTesting(false)
             }
             .safeAreaInset(edge: isListAboveInputView ? .bottom : .top, spacing: 0) {
                 VStack(spacing: 0) {
