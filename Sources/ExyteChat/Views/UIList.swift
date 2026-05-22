@@ -66,6 +66,19 @@ struct UIList<MessageContent: View, InputView: View>: UIViewRepresentable {
         tableView.isScrollEnabled = isScrollEnabled
         tableView.keyboardDismissMode = keyboardDismissMode
 
+        // iOS 26 adds top/bottom UIScrollEdgeEffect to UIScrollView by default —
+        // a soft fade meant to blend scroll content with adjacent glass bars.
+        // For a chat list it makes the cells look washed out (especially with
+        // the 180° rotation we use for .conversation type, which seems to
+        // confuse which edge is which and applies the effect across the
+        // whole content). Hide both edges: the system glass bars still wear
+        // their own glass material and refract content scrolling underneath
+        // — we just don't want an extra translucent overlay on the cells.
+        if #available(iOS 26.0, *) {
+            tableView.topEdgeEffect.isHidden = true
+            tableView.bottomEdgeEffect.isHidden = true
+        }
+
         NotificationCenter.default.addObserver(forName: .onScrollToBottom, object: nil, queue: nil) { _ in
             DispatchQueue.main.async {
                 if !context.coordinator.sections.isEmpty {
