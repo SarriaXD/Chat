@@ -270,49 +270,24 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
         // through the regions under the bars to give the system glass material
         // real content to refract.
         //
-        // Liquid-Glass-style soft fade *into* the nav bar (iOS Messages look):
-        // cells fade as they go behind the bar — invisible at the very top,
-        // ramping up to ~70% just below the bar's top edge, fully opaque
-        // ~24pt below the bar. The nav bar still wears its own glass material
-        // and refracts the faded-but-still-present cells, which is exactly
-        // what makes the bar read as glass rather than a separate strip
-        // floating below it.
+        // No client-side fade into the nav bar: iOS 26's standard
+        // UIScrollEdgeEffect (the soft fade that lets cells dissolve into
+        // a glass bar) doesn't work on the 180°-rotated UITableView the
+        // library uses for .conversation type — .topEdgeEffect paints a
+        // uniform translucent overlay across all cells; .bottomEdgeEffect
+        // renders nothing. Hand-rolling the fade with SwiftUI .mask works
+        // visually but only by pushing cell alpha down, which leaves the
+        // bar's glass material with attenuated content to refract — the
+        // bar then reads as opaque rather than glass.
         //
-        // The 110pt nav-bar height and 24pt below-bar ramp match an iPhone
-        // NavigationStack with an inline title (status bar ~59pt + inline
-        // nav bar ~50pt). Hosts using a large title or a non-NavigationStack
-        // container may want to tune the two constants — exposing them as a
-        // modifier is the natural next step.
-        //
-        // iOS 26's built-in UIScrollEdgeEffect would normally do this, but
-        // the 180° rotation we apply on the UITableView for .conversation
-        // type confuses the system's edge math: .topEdgeEffect paints across
-        // the whole content as a uniform translucent overlay; .bottomEdgeEffect
-        // doesn't render anything. Verified on iOS 26.4.2 device + iOS 26.4
-        // simulator.
+        // The remaining (and good!) iOS 26 Liquid Glass behaviour we *do*
+        // get is the nav bar refracting cells that scroll behind it (via
+        // .ignoresSafeArea below). That's the standard NavigationStack
+        // glass surface; the missing piece is just the extra soft edge
+        // gradient, which requires either a non-rotated scroll view or a
+        // lower-level Metal-shader fade we don't have access to.
         listWithButton
             .ignoresSafeArea(.container, edges: [.top, .bottom])
-            .mask {
-                VStack(spacing: 0) {
-                    LinearGradient(
-                        stops: [
-                            .init(color: .black.opacity(0.0), location: 0),
-                            .init(color: .black.opacity(0.2), location: 0.5),
-                            .init(color: .black.opacity(0.7), location: 1.0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 110) // nav bar region (status + inline nav)
-                    LinearGradient(
-                        colors: [.black.opacity(0.7), .black],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 24)
-                    Rectangle().fill(.black)
-                }
-            }
             .safeAreaInset(edge: isListAboveInputView ? .bottom : .top, spacing: 0) {
                 VStack(spacing: 0) {
                     if isListAboveInputView {
