@@ -66,17 +66,24 @@ struct UIList<MessageContent: View, InputView: View>: UIViewRepresentable {
         tableView.isScrollEnabled = isScrollEnabled
         tableView.keyboardDismissMode = keyboardDismissMode
 
-        // iOS 26 adds top/bottom UIScrollEdgeEffect to UIScrollView by default —
+        // iOS 26 adds top + bottom UIScrollEdgeEffect to every UIScrollView —
         // a soft fade meant to blend scroll content with adjacent glass bars.
-        // For a chat list it makes the cells look washed out (especially with
-        // the 180° rotation we use for .conversation type, which seems to
-        // confuse which edge is which and applies the effect across the
-        // whole content). Hide both edges: the system glass bars still wear
-        // their own glass material and refract content scrolling underneath
-        // — we just don't want an extra translucent overlay on the cells.
+        // We use .conversation chat type with a 180° rotation on the table,
+        // so the scroll view's own "top" edge is visually at the *bottom* of
+        // the screen (where the composer sits) and vice versa.
+        //
+        // We hide the scroll-view-top effect (= visual bottom of the chat):
+        // there's no glass bar to fade into down there, and on device this
+        // edge's effect renders as a washed-out overlay across the whole
+        // visible content (verified iOS 26.4.2, didn't surface on iOS 26.4
+        // simulator).
+        //
+        // We *keep* the scroll-view-bottom effect (= visual top of the chat,
+        // the nav bar edge) at its default style: this is the standard iOS 26
+        // Liquid Glass soft fade where cells dissolve into the nav bar — the
+        // "上部分的blur" the user asked for.
         if #available(iOS 26.0, *) {
             tableView.topEdgeEffect.isHidden = true
-            tableView.bottomEdgeEffect.isHidden = true
         }
 
         NotificationCenter.default.addObserver(forName: .onScrollToBottom, object: nil, queue: nil) { _ in
