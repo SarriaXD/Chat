@@ -270,44 +270,48 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
         // through the regions under the bars to give the system glass material
         // real content to refract.
         //
-        // To give the visual top a Liquid-Glass-style soft fade, we overlay
-        // a 30pt strip of .regularMaterial *just below* the nav bar with a
-        // gradient mask (opaque top → clear bottom). The strip never covers
-        // the bar's region, so cells behind the bar stay fully opaque and
-        // the bar's own glass material still has crisp content to refract.
-        // The strip itself reads as a soft "glass continuation" — cells
-        // pass behind a thin material as they approach the bar, dissolving
-        // into the nav bar's glass.
+        // Liquid-Glass-style soft fade *into* the nav bar (iOS Messages look):
+        // cells fade as they go behind the bar — invisible at the very top,
+        // ramping up to ~70% just below the bar's top edge, fully opaque
+        // ~24pt below the bar. The nav bar still wears its own glass material
+        // and refracts the faded-but-still-present cells, which is exactly
+        // what makes the bar read as glass rather than a separate strip
+        // floating below it.
+        //
+        // The 110pt nav-bar height and 24pt below-bar ramp match an iPhone
+        // NavigationStack with an inline title (status bar ~59pt + inline
+        // nav bar ~50pt). Hosts using a large title or a non-NavigationStack
+        // container may want to tune the two constants — exposing them as a
+        // modifier is the natural next step.
         //
         // iOS 26's built-in UIScrollEdgeEffect would normally do this, but
         // the 180° rotation we apply on the UITableView for .conversation
-        // type confuses the system's edge math: with .topEdgeEffect the
-        // effect paints across the whole content as a uniform translucent
-        // overlay; with .bottomEdgeEffect nothing renders. Verified on
-        // iOS 26.4.2 device + iOS 26.4 simulator.
-        //
-        // The 100pt skip-region matches an iPhone NavigationStack with an
-        // inline title (status bar + nav bar ≈ 100pt). Hosts using a large
-        // title or a non-NavigationStack container may want to tune that
-        // constant — exposing it as a modifier is the natural next step.
+        // type confuses the system's edge math: .topEdgeEffect paints across
+        // the whole content as a uniform translucent overlay; .bottomEdgeEffect
+        // doesn't render anything. Verified on iOS 26.4.2 device + iOS 26.4
+        // simulator.
         listWithButton
             .ignoresSafeArea(.container, edges: [.top, .bottom])
-            .overlay(alignment: .top) {
-                // .overlay(alignment: .top) aligns to the top of the safe area
-                // (i.e., right below the nav bar) — *not* to the screen top,
-                // despite the .ignoresSafeArea above. So the strip sits flush
-                // against the bar's bottom edge with no extra spacer.
-                Rectangle()
-                    .fill(.regularMaterial)
-                    .frame(height: 30)
-                    .mask {
-                        LinearGradient(
-                            colors: [.black, .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
-                    .allowsHitTesting(false)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.0), location: 0),
+                            .init(color: .black.opacity(0.2), location: 0.5),
+                            .init(color: .black.opacity(0.7), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 110) // nav bar region (status + inline nav)
+                    LinearGradient(
+                        colors: [.black.opacity(0.7), .black],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 24)
+                    Rectangle().fill(.black)
+                }
             }
             .safeAreaInset(edge: isListAboveInputView ? .bottom : .top, spacing: 0) {
                 VStack(spacing: 0) {
