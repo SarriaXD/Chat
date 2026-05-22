@@ -256,27 +256,43 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
     }
     
     var mainView: some View {
-        VStack {
-            if showNetworkConnectionProblem, !networkMonitor.isConnected {
-                waitingForNetwork
-            }
-            
-            if isListAboveInputView {
-                listWithButton
-                if let builder = betweenListAndInputViewBuilder {
-                    builder()
+        // Liquid Glass edges (iOS 26):
+        // The list extends to the screen edges via .ignoresSafeArea, so its
+        // wrapped UITableView frame reaches under the nav bar at the top and
+        // under the inputView (plus any host-added .safeAreaInset.bottom such
+        // as a Liquid Glass composer) at the bottom. The inputView, the
+        // between-builder content, and the network banner are placed via
+        // .safeAreaInset, which adds their height to the SwiftUI safe area
+        // insets. SwiftUI propagates those insets to the underlying scroll
+        // view's safeAreaInsets, and contentInsetAdjustmentBehavior = .automatic
+        // (the UITableView default) folds them into adjustedContentInset — so
+        // cells at rest stop short of the bars, while scrolling lets them pass
+        // through the regions under the bars to give the system glass material
+        // real content to refract.
+        listWithButton
+            .ignoresSafeArea(.container, edges: [.top, .bottom])
+            .safeAreaInset(edge: isListAboveInputView ? .bottom : .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    if isListAboveInputView {
+                        if let builder = betweenListAndInputViewBuilder {
+                            builder()
+                        }
+                        inputView
+                    } else {
+                        inputView
+                        if let builder = betweenListAndInputViewBuilder {
+                            builder()
+                        }
+                    }
                 }
-                inputView
-            } else {
-                inputView
-                if let builder = betweenListAndInputViewBuilder {
-                    builder()
-                }
-                listWithButton
             }
-        }
-        // Used to prevent ChatView movement during Emoji Keyboard invocation
-        .ignoresSafeArea(isShowingMenu ? .keyboard : [])
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if showNetworkConnectionProblem, !networkMonitor.isConnected {
+                    waitingForNetwork
+                }
+            }
+            // Used to prevent ChatView movement during Emoji Keyboard invocation
+            .ignoresSafeArea(isShowingMenu ? .keyboard : [])
     }
     
     var waitingForNetwork: some View {
