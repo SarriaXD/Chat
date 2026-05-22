@@ -269,8 +269,35 @@ public struct ChatView<MessageContent: View, InputViewContent: View, MenuAction:
         // cells at rest stop short of the bars, while scrolling lets them pass
         // through the regions under the bars to give the system glass material
         // real content to refract.
+        //
+        // .mask gives the visual top a Liquid-Glass-style soft fade: cells
+        // immediately under the nav bar are rendered at ~0.5 alpha (so the
+        // bar's glass material still refracts them — it just refracts a
+        // softened image) and ramp back up to fully opaque ~24pt below the
+        // bar. iOS 26's built-in UIScrollEdgeEffect would normally do this,
+        // but the 180° rotation we apply on the UITableView for .conversation
+        // type confuses the system's edge math and the native effect either
+        // fails to render or paints across the whole content (verified on
+        // iOS 26.4.2 device + iOS 26.4 simulator). The hard-coded fade
+        // geometry below assumes an iPhone NavigationStack with an inline
+        // title; if the host uses a large title or a non-NavigationStack
+        // container, the topFadeHeight constant should be adjusted.
         listWithButton
             .ignoresSafeArea(.container, edges: [.top, .bottom])
+            .mask {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(.black.opacity(0.5))
+                        .frame(height: 100) // approx status bar + inline nav bar height
+                    LinearGradient(
+                        colors: [.black.opacity(0.5), .black],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 24)
+                    Rectangle().fill(.black)
+                }
+            }
             .safeAreaInset(edge: isListAboveInputView ? .bottom : .top, spacing: 0) {
                 VStack(spacing: 0) {
                     if isListAboveInputView {

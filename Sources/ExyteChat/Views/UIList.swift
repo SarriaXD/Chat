@@ -73,17 +73,20 @@ struct UIList<MessageContent: View, InputView: View>: UIViewRepresentable {
         // the screen (where the composer sits) and vice versa.
         //
         // We hide the scroll-view-top effect (= visual bottom of the chat):
-        // there's no glass bar to fade into down there, and on device this
+        // there's no glass bar to fade into down there, and on device that
         // edge's effect renders as a washed-out overlay across the whole
-        // visible content (verified iOS 26.4.2, didn't surface on iOS 26.4
+        // visible content (verified iOS 26.4.2; didn't surface on iOS 26.4
         // simulator).
         //
-        // We *keep* the scroll-view-bottom effect (= visual top of the chat,
-        // the nav bar edge) at its default style: this is the standard iOS 26
-        // Liquid Glass soft fade where cells dissolve into the nav bar — the
-        // "上部分的blur" the user asked for.
+        // We force the scroll-view-bottom effect (= visual top of the chat,
+        // the nav bar edge) to .soft explicitly. The default .automatic
+        // appeared to render nothing when the table is rotated — the system
+        // probably can't tell which edge sits under a glass bar. .soft is
+        // the Liquid Glass fade where cells dissolve into the nav bar — the
+        // "上部分的blur" we're after.
         if #available(iOS 26.0, *) {
             tableView.topEdgeEffect.isHidden = true
+            tableView.bottomEdgeEffect.isHidden = true
         }
 
         NotificationCenter.default.addObserver(forName: .onScrollToBottom, object: nil, queue: nil) { _ in
